@@ -4,4 +4,5 @@
 
 然后就有了这个仓库。这个效果之前是有人开源oc。我改了下，不能属于原创，但有加强。
 
-![](http://7o4yzj.com1.z0.glb.clouddn.com/yangcong.gif)
+![](http://7o4yzj.com1.z0.glb.clouddn.com/yangcong.gif)    
+[博文](http://107.150.96.151/#568e17fde50d14476664401b)
