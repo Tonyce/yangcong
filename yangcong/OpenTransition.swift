@@ -6,77 +6,77 @@
 //  Copyright © 2016年 D_ttang. All rights reserved.
 //
 
+import Foundation
 import UIKit
 
-class OpenDiaryAnimation: NSObject, UIViewControllerTransitioningDelegate {
+class OpenAnimation: NSObject, UIViewControllerTransitioningDelegate {
     
-    let openDiaryTransition = OpenDiaryTransition()
-    var tmpOriginFrame: CGRect!
+    var fromFrame: CGRect = CGRectZero
+    var fromFrameCenter: CGPoint = CGPointZero
+
+    var openTransition = OpenTransition()
+    
     func animationControllerForPresentedController(presented: UIViewController, presentingController presenting: UIViewController, sourceController source: UIViewController) -> UIViewControllerAnimatedTransitioning? {
-        
-        openDiaryTransition.originFrame = tmpOriginFrame
-        openDiaryTransition.presenting = true
-        return openDiaryTransition
-    }
-    
-    func animationControllerForDismissedController(dismissed: UIViewController) -> UIViewControllerAnimatedTransitioning? {
-        openDiaryTransition.presenting = false
-        return openDiaryTransition
+        openTransition.fromFrame = fromFrame
+        openTransition.fromFrameCenter = fromFrameCenter
+        return openTransition
     }
 }
 
-class OpenDiaryTransition: NSObject, UIViewControllerAnimatedTransitioning {
+class OpenTransition: NSObject, UIViewControllerAnimatedTransitioning {
     
-    let duration    = 0.3
-    var presenting  = true
-    var originFrame = CGRect.zero
+    var transitionContext: UIViewControllerContextTransitioning?
     
-    var topImageHeight:CGFloat = 0.0
-    var dismissCompletion: (()->())?
+    var fromFrame: CGRect = CGRectZero
+    var fromFrameCenter: CGPoint = CGPointZero
     
     func transitionDuration(transitionContext: UIViewControllerContextTransitioning?) -> NSTimeInterval {
-        return duration
+        return 2.5
     }
     
     func animateTransition(transitionContext: UIViewControllerContextTransitioning) {
-        
         let containerView = transitionContext.containerView()
-        let toView = transitionContext.viewForKey(UITransitionContextToViewKey)!
+        self.transitionContext = transitionContext
         
-        let herbView = presenting ? toView : transitionContext.viewForKey(UITransitionContextFromViewKey)!
+        let fromViewController = transitionContext.viewControllerForKey(UITransitionContextFromViewControllerKey) as! ViewController
+        let fromView = fromViewController.view //from view
+        let toController: UIViewController = transitionContext.viewControllerForKey(UITransitionContextToViewControllerKey)!
+        let toView = toController.view
         
-        let initialFrame = presenting ? originFrame : herbView.frame
-        let finalFrame = presenting ? herbView.frame : originFrame
-        
-        let yScaleFactor = presenting ? initialFrame.height / finalFrame.height : finalFrame.height / initialFrame.height
-        
-        let scaleTransform = CGAffineTransformMakeScale(1, yScaleFactor)
-        
-        
-        if presenting {
-            herbView.alpha = 0.1
-            herbView.transform = scaleTransform
-            herbView.center = CGPoint(
-                x: CGRectGetMidX(initialFrame),
-                y: CGRectGetMidY(initialFrame))
-            herbView.clipsToBounds = true
-        }
-        
+        containerView!.addSubview(fromView)
         containerView!.addSubview(toView)
-        containerView!.bringSubviewToFront(herbView)
+        containerView!.bringSubviewToFront(toView)
         
-        UIView.animateWithDuration(duration,
-            
-            animations: {
-                herbView.transform = self.presenting ? CGAffineTransformIdentity : scaleTransform
-                herbView.center = CGPoint(x: CGRectGetMidX(finalFrame), y: CGRectGetMidY(finalFrame))
-                herbView.alpha = self.presenting ? 1.0 : 0.0
-            }, completion:{_ in
-                
-                if !self.presenting {
-                    self.dismissCompletion?()
-                }
-                transitionContext.completeTransition(true)
-        })
+        
+        let buttonFrame = fromViewController.fromView.frame
+        let buttonFrameCenter = fromViewController.fromView.center
+        
+        let endFrame = CGRectMake(buttonFrameCenter.x - CGRectGetHeight(toView.frame) , buttonFrameCenter.y-CGRectGetHeight(fromView.frame), CGRectGetHeight(toView.frame)*2.5, CGRectGetHeight(toView.frame)*2.5)
+        
+//        print(endFrame)
+        
+        let maskPath = UIBezierPath(ovalInRect: buttonFrame)
+        
+        let maskLayer = CAShapeLayer()
+        maskLayer.frame = toView.frame
+        maskLayer.path = maskPath.CGPath
+        maskLayer.fillColor = UIColor.redColor().CGColor
+        toView.layer.mask = maskLayer
+        
+        let bigCirclePath = UIBezierPath(ovalInRect: endFrame)
+        let pathAnimation = CABasicAnimation(keyPath: "path")
+        pathAnimation.delegate = self
+        pathAnimation.fromValue = maskPath.CGPath
+        pathAnimation.toValue = bigCirclePath
+        pathAnimation.duration = 0.5
+        
+        maskLayer.path = bigCirclePath.CGPath
+        maskLayer.addAnimation(pathAnimation, forKey: "pathAnimation")
+    }
+    
+    override func animationDidStop(anim: CAAnimation, finished flag: Bool) {
+        if let transitionContext = self.transitionContext {
+            transitionContext.completeTransition(!transitionContext.transitionWasCancelled())
+        }
     }
 }
